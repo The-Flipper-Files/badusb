@@ -1,0 +1,62 @@
+name: "Publish Release"
+on:
+  push:
+    branches:    
+      - main
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check If allowed to run
+      id: check-allowed-to-run
+      run: |
+        if [[ "${{ secrets.ENABLE_AUTO_RELEASE }}"  == "true" ]]; then
+          echo "Allowed!"
+          echo "::set-output name=allowed_to_run::true"          
+        else
+          echo "Not Allowed!"
+          echo "::set-output name=allowed_to_run::false"
+        fi
+    - uses: actions/checkout@master
+      if: steps.check-allowed-to-run.outputs.allowed_to_run == 'true'
+      with:
+        submodules: true
+    - name: Set outputs
+      if: steps.check-allowed-to-run.outputs.allowed_to_run == 'true'
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: Create Draft Release
+      if: steps.check-allowed-to-run.outputs.allowed_to_run == 'true'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.vars.outputs.sha_short }}
+        release_name: "${{ steps.vars.outputs.sha_short }}"
+        draft: true
+        prerelease: false
+    - name: Generate ZIP
+      if: steps.check-allowed-to-run.outputs.allowed_to_run == 'true'
+      uses: thedoctor0/zip-release@0.7.5
+      with:
+        type: 'zip'
+        filename: 'withSubmodules.zip'
+        exclusions: '*.git* *.github/workflows withSubmodules.*'
+    - name: Add ZIP to Release
+      if: steps.check-allowed-to-run.outputs.allowed_to_run == 'true'
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: withSubmodules.zip
+        asset_name: withsubmodules.zip
+        asset_content_type: application/zip
+    - name: Publish Release
+      if: steps.check-allowed-to-run.outputs.allowed_to_run == 'true'
+      uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
