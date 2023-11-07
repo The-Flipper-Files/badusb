@@ -1,3 +1,6 @@
 [submodule "my-flipper-shits"]
 	path = my-flipper-shits
 	url = https://github.com/aleff-github/my-flipper-shits/
+[submodule "flipper-zero-BadUSB"]
+	path = flipper-zero-BadUSB
+	url = https://github.com/I-Am-Jakoby/Flipper-Zero-BadUSB
